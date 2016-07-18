@@ -1,5 +1,9 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.0)
 
-add_executable (DistLang main.cpp)
-llvm_map_components_to_libnames(llvm_libs core)
-target_link_libraries(DistLang ${llvm_libs}) 
+file(GLOB DIST_SOURCES "*.cpp" "*.h")
+
+add_library( distlanglib STATIC
+		${DIST_SOURCES}
+		)
+				
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
