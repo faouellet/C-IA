@@ -12,9 +12,9 @@
 
 BOOST_AUTO_TEST_CASE( MatrixAdditionTest )
 {
-    // Construct tensors with their dimensionality
-    Input a(2);
-    Input b(2);
+    // Construct variables with their dimensionality
+    Var a(2);
+    Var b(2);
 
     // Index variables
     Index i, j;
@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE( MatrixAdditionTest )
     Func matAdd;
 
     // The function definition
-    matAdd[i, j] = a[i, j] + b[i, j];
+    matAdd(i, j) = a(i, j) + b(i, j);
 
     // matAdd.distribute()
     // matAdd.parallelize()
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE( MatrixMultiplicationTest )
     Func matMult;
 
     // The function definition
-    matMult[i, j] = sum(a[i, k] * b[k, j]);
+    matMult(i, j, k) = sum(a(i, k) * b(k, j));
         
     // matMult.distribute()
     // matMult.parallelize()
