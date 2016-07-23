@@ -8,13 +8,18 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "../src/func.h"
+#include "../src/tensor.h"
+
 #include <vector>
+
+using namespace DistLang;
 
 BOOST_AUTO_TEST_CASE( MatrixAdditionTest )
 {
-    // Construct variables with their dimensionality
-    Var a(2);
-    Var b(2);
+    // Construct tensors with their dimensionality
+    Tensor<int> matA(2);
+    Tensor<int> matB(2);
 
     // Index variables
     Index i, j;
@@ -23,26 +28,24 @@ BOOST_AUTO_TEST_CASE( MatrixAdditionTest )
     Func matAdd;
 
     // The function definition
-    matAdd(i, j) = a(i, j) + b(i, j);
+    matAdd(i, j) = matA(i, j) + matB(i, j);
 
     // matAdd.distribute()
     // matAdd.parallelize()
     // matAdd.vectorize()
-
-    Tensor<int> matA;
-    Tensor<int> matB;
-
-    Tensor c = matAdd(matA, matB);
+    
+    Tensor<int> matC;
+    matAdd.execute(matC);
 }
 
 BOOST_AUTO_TEST_CASE( MatrixMultiplicationTest )
 {
     // Construct tensors with their dimensionality
-    Tensor a(2);
-    Tensor b(2);
+    Tensor<int> a(2);
+    Tensor<int> b(2);
 
     // Index variables
-    Var i, j, k;
+    Index i, j, k;
 
     // The function declaration
     Func matMult;
@@ -55,7 +58,6 @@ BOOST_AUTO_TEST_CASE( MatrixMultiplicationTest )
     // matMult.vectorize()
 
     // The result
-    Tensor c = matMult(a, b);
-
-    c.Print();
+    Tensor<int> c;
+    matMult.execute(c);
 }
