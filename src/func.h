@@ -2,6 +2,7 @@
 #define FUNC_H
 
 #include "expr.h"
+#include "jit.h"
 
 namespace DistLang
 {
@@ -13,6 +14,12 @@ namespace DistLang
         {
             mExpr = { indexes... };
             return mExpr;
+        }
+
+        template <typename T>
+        void Execute(Tensor<T>& tensor) 
+        {
+
         }
 
     private:
