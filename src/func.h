@@ -4,6 +4,8 @@
 #include "expr.h"
 #include "jit.h"
 
+#include <llvm/IR/Module.h>
+
 namespace DistLang
 {
     class Func
@@ -19,11 +21,17 @@ namespace DistLang
         template <typename T>
         void Execute(Tensor<T>& tensor) 
         {
+            if (mModule == nullptr)
+            {
+                mModule.reset(mExpr.GetIR());
+            }
 
+            JITCompiler::GetInstance().FindSymbol()
         }
 
     private:
         Expr mExpr;
+        std::unique_ptr<llvm::Module> mModule;
     };
 }
 
