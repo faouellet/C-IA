@@ -18,11 +18,11 @@ if(Boost_FOUND)
         link_directories("${Boost_LIBRARY_DIRS}")
         
         add_executable(Tests ${SOURCES}) 
-        target_link_libraries(Tests ${Boost_LIBRARIES})
+        target_link_libraries(Tests ${Boost_LIBRARIES} distlanglib)
     else()
         include(../cmake/BoostTestHelpers.cmake)
 
 		# TosLang tests
-		add_boost_test(matrix.cpp lang)
+		add_boost_test(matrix.cpp distlanglib)
     endif()
 endif()
