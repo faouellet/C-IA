@@ -8,10 +8,11 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+llvm_map_components_to_libnames(llvm_libs support core)
+
 add_subdirectory (src)
 add_subdirectory (tests)
 
 add_executable (DistLang main.cpp)
 set_target_properties(distlanglib PROPERTIES LINKER_LANGUAGE CXX)
-llvm_map_components_to_libnames(llvm_libs support core)
 target_link_libraries(DistLang distlanglib ${llvm_libs}) 
