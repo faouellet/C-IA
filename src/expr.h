@@ -1,28 +1,20 @@
 #ifndef EXPR_H
 #define EXPR_H
 
+#include "exprirbuilder.h"
 #include "index.h"
 #include "utils.h"
-
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Value.h>
 
 #include <memory>
 #include <vector>
 
 namespace DistLang
 {
-    template <typename T> class Tensor;
+    template <typename T> class Matrix;
     
     namespace impl
     {
-        enum class Operation
-        {
-            ADD,
-            DIV,
-            MUL,
-            SUB
-        };
+        enum class Operation { ADD, DIV, MUL, SUB };
 
         class ExprNode 
         {
@@ -30,7 +22,7 @@ namespace DistLang
             virtual ~ExprNode() = default;
 
         public:
-            virtual llvm::Value* CodeGen(llvm::IRBuilder<>& builder) const = 0;
+            virtual void CodeGen(ExprIRBuilder& builder) const = 0;
         };
 
         class BinOpExprNode : public ExprNode 
@@ -40,7 +32,7 @@ namespace DistLang
                 mLHSNode{ lhsNode }, mRHSNode{ rhsNode }, mOp{ op } { }
 
         public: // Expr interface
-            virtual llvm::Value* CodeGen(llvm::IRBuilder<>& builder) const override;
+            virtual void CodeGen(ExprIRBuilder& builder) const override;
 
         private:
             std::shared_ptr<ExprNode> mLHSNode;
@@ -51,39 +43,39 @@ namespace DistLang
         template <typename T>
         class ConstantExprNode : public ExprNode 
         {
-            static_assert(std::is_integral<T>::value, "Only integral constants are allowed");
-
         public:
-            ConstantExprNode(const Tensor<T>& tensor) : mConstant{ tensor } { }
+            ConstantExprNode(const Matrix<T>& tensor) : mConstant{ tensor } { }
 
         public: // Expr interface
-            virtual llvm::Value* CodeGen(llvm::IRBuilder<>& builder) const override
+            virtual void CodeGen(ExprIRBuilder& builder) const override
             {
-                return builder.CreateAlloca(llvm::Type::getInt32Ty(builder.getContext()));
+                builder.CreateAlloca(llvm::Type::getInt32Ty(builder.getContext()));
             }
 
         private:
-            Tensor<T> mConstant;
+            Matrix<T>& mConstant;
         };
 
         template <typename T>
         class IndexedExprNode : public ExprNode
         {
-            static_assert(std::is_integral<T>::value, "Only integral tensors are allowed");
-
         public:
             template <typename T, typename... Indexes>
-            IndexedExprNode(const Tensor<T>& tensor, const Indexes&... indexes) : mVar{ tensor }, mIndexes{ indexes... } { }
+            IndexedExprNode(const Matrix<T>& tensor, const Indexes&... indexes) : mVar{ tensor }, mIndexes{ indexes... } { }
 
         public: // Expr interface
-            virtual llvm::Value* CodeGen(llvm::IRBuilder<>& builder) const override
+            virtual void CodeGen(ExprIRBuilder& builder) const override
             {
-                // TODO: Actual indexing
-                return builder.CreateAlloca(llvm::Type::getInt32Ty(builder.getContext()));
+                std::vector<llvm::Value*> indexValues;
+                for (int iDim = 0; iDim < mIndexes.size(); ++iDim)
+                {
+                    indexValues.emplace_back(builder.CreateAlloca(llvm::Type::getInt32Ty(builder.getContext())));
+                    builder.CreateStore(indexValues.back(), llvm::ConstantInt::get(builder.getContext(), llvm::APInt(32, 0)));
+                }
             }
 
         private:
-            Tensor<T> mVar;
+            const Matrix<T>& mVar;
             std::vector<Index> mIndexes;
         };
     }
@@ -91,13 +83,23 @@ namespace DistLang
     class Expr
     {
     public: // Ctors
-        template <typename T, typename... Indexes>
-        Expr(const Tensor<T>& tensor, const Indexes&... indexes) : mVar{ var }, mIndexes { indexes }
-        {
-            static_assert(impl::is_all_same<Index, Indexes...>::value, "Only Index objects are allowed");
-            static_assert(std::is_integral<T>::value, "Only integral constants are allowed");
+        Expr() = default;
 
-            mExprNode.reset(new impl::IndexedExprNode<T>{ tensor, indexes });
+        template <typename T, typename... Indexes>
+        Expr(const Matrix<T>& matrix, const Indexes&... indexes)
+        {
+            static_assert(impl::is_all_same<Index, Indexes...>::value, "Index objects are required for indexing");
+            static_assert(std::is_integral<T>::value, "Only integral matrices are allowed");
+
+            mExprNode.reset(new impl::IndexedExprNode<T>{ matrix, indexes... });
+        }
+
+        template <typename T>
+        Expr(const Matrix<T>& matrix)
+        {
+            static_assert(std::is_integral<T>::value, "Only integral matrices are allowed");
+
+            mExprNode.reset(new impl::ConstantExprNode<T>{ matrix });
         }
 
         Expr(const Expr& lhsExpr, const Expr& rhsExpr, impl::Operation op)
@@ -106,7 +108,7 @@ namespace DistLang
         }
         
     public:
-        llvm::Value* GetIR() const;
+        std::unique_ptr<llvm::Module> GetIR() const;
 
     private:
         std::shared_ptr<impl::ExprNode> mExprNode;

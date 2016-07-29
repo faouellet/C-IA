@@ -4,29 +4,32 @@
 #include "expr.h"
 #include "jit.h"
 
-#include <llvm/IR/Module.h>
-
 namespace DistLang
 {
     class Func
     {
     public:
+        ~Func() = default;
+
+    public:
         template <typename... Indexes>
         Expr& operator()(const Indexes&... indexes)
         {
-            mExpr = { indexes... };
             return mExpr;
         }
 
         template <typename T>
-        void Execute(Tensor<T>& tensor) 
+        void Execute(Matrix<T>& tensor) 
         {
             if (mModule == nullptr)
             {
-                mModule.reset(mExpr.GetIR());
+                mModule.reset(mExpr.GetIR().release());
             }
 
-            JITCompiler::GetInstance().FindSymbol()
+            assert(mModule != nullptr);
+
+            mModule->dump();
+            //JITCompiler::GetInstance().FindSymbol()
         }
 
     private:

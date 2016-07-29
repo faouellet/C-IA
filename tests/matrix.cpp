@@ -1,15 +1,9 @@
-#ifdef STAND_ALONE
-#   define BOOST_TEST_MODULE Main
-#else
-#ifndef _WIN32
-#   define BOOST_TEST_MODULE MatrixTests
-#endif
-#endif
+# define BOOST_TEST_MODULE Main
 
 #include <boost/test/unit_test.hpp>
 
 #include "../src/func.h"
-#include "../src/tensor.h"
+#include "../src/matrix.h"
 
 #include <vector>
 
@@ -18,8 +12,8 @@ using namespace DistLang;
 BOOST_AUTO_TEST_CASE( MatrixAdditionTest )
 {
     // Construct tensors with their dimensionality
-    Tensor<int> matA(2);
-    Tensor<int> matB(2);
+    Matrix<int> matA;
+    Matrix<int> matB;
 
     // Index variables
     Index i, j;
@@ -28,17 +22,18 @@ BOOST_AUTO_TEST_CASE( MatrixAdditionTest )
     Func matAdd;
 
     // The function definition
-    matAdd(i, j) = matA(i, j) + matB(i, j);
+    //matAdd(i, j) = matA(i, j) + matB(i, j);
+    matAdd(i, j) = matA(i, j);
 
     // matAdd.distribute()
     // matAdd.parallelize()
     // matAdd.vectorize()
     
-    Tensor<int> matC;
-    matAdd.execute(matC);
+    Matrix<int> matC;
+    matAdd.Execute(matC);
 }
 
-BOOST_AUTO_TEST_CASE( MatrixMultiplicationTest )
+/*BOOST_AUTO_TEST_CASE( MatrixMultiplicationTest )
 {
     // Construct tensors with their dimensionality
     Tensor<int> a(2);
@@ -60,4 +55,4 @@ BOOST_AUTO_TEST_CASE( MatrixMultiplicationTest )
     // The result
     Tensor<int> c;
     matMult.execute(c);
-}
+}*/

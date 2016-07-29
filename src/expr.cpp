@@ -1,15 +1,24 @@
 #include "expr.h"
 
+#include <llvm/IR/Module.h>
+
 using namespace DistLang;
 using namespace DistLang::impl;
 using namespace llvm;
 
 ////////// BinOpExprNode //////////
 
-Value* BinOpExprNode::CodeGen(IRBuilder<>& builder) const
+void BinOpExprNode::CodeGen(IRBuilder<>& builder) const
 {
-    Value* lhsVal = mLHSNode->CodeGen(builder);
-    Value* rhsVal = mRHSNode->CodeGen(builder);
+    mLHSNode->CodeGen(builder);
+    Value* lhsVal = &*builder.GetInsertPoint();
+    mRHSNode->CodeGen(builder);
+    Value* rhsVal = &*builder.GetInsertPoint();
+
+    BasicBlock* currentBlock = builder.GetInsertBlock();
+    BasicBlock* binOpBlock = BasicBlock::Create(builder.getContext(), "BinOp", currentBlock->getParent());
+    builder.CreateBr(binOpBlock);
+    builder.SetInsertPoint(binOpBlock);
 
     Value* binOpVal = nullptr;
     switch (mOp)
@@ -27,21 +36,26 @@ Value* BinOpExprNode::CodeGen(IRBuilder<>& builder) const
         binOpVal = builder.CreateSub(lhsVal, rhsVal);
         break;
     default:
-        assert(false && "Unrecognized binary operation");
+        assert(false && "Unsupported binary operation");
     }
- 
-    return binOpVal;
 }
 
 ////////// Expr //////////
 
-llvm::Value* Expr::GetIR() const
+std::unique_ptr<Module> Expr::GetIR() const
 {
-    llvm::LLVMContext context;
-    llvm::IRBuilder<> builder(context);
+    ExprIRBuilder builder;
 
-    // TODO: Create function
-    // TODO: Create loop
+    auto mod = std::make_unique<Module>(builder.GetIR());
 
-    return mExprNode->CodeGen(builder);
+    mod->dump();
+    
+    if (mExprNode != nullptr)
+    {
+        // TODO: Create loop
+        mExprNode->CodeGen(builder);
+        return mod;
+    }
+
+    return nullptr;
 }
