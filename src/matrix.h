@@ -1,30 +1,23 @@
-#ifndef TENSOR_H
-#define TENSOR_H
+#ifndef MATRIX_H
+#define MATRIX_H
 
-#include "expr.h"
-
-#include <cassert>
+#include <string>
+#include <vector>
 
 namespace DistLang
 {
-    template <typename T>
+    class Expr;
+    class Index;
+
     class Matrix
     {
     public:
-        Matrix(const std::string& name = "") : mName{ name }
-        {
-            if (name.empty())
-            {
-                mName = "Matrix" + mID++;
-            }
-        }
+        Matrix(const std::string& name = "");
 
-        template <typename... Indexes>
-        Expr operator()(const Indexes&... indexes) const
-        {
-            return Expr{ *this, indexes... };
-        }
+    public:
+        Expr operator()(const Index& hIdx, const Index& wIdx) const;
 
+    public:
         size_t GetHeight() const { return mData.size(); }
         size_t GetWidth() const { return mData.front().size(); }
         const std::string& GetName() const { return mName; }
@@ -32,10 +25,8 @@ namespace DistLang
     private:
         static size_t mID;
         std::string mName;
-        std::vector<std::vector<T>> mData;
+        std::vector<std::vector<double>> mData;
     };
-
-    template <typename T> size_t Matrix<T>::mID = 0;
 }
 
-#endif // TENSOR_H
+#endif // MATRIX_H
