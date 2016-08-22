@@ -8,13 +8,7 @@ namespace DistLang
     class Index 
     {
     public:
-        explicit Index(const std::string& name = "") : mName{ name } 
-        {
-            if (mName.empty())
-            {
-                mName = "Index" + mID++;
-            }
-        }
+        explicit Index(const std::string& name = "");
 
     public:
         const std::string& GetName() const { return mName; }
