@@ -1,9 +1,9 @@
 #include "jit.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/ExecutionEngine/Orc/CompileUtils.h>
 #include <llvm/ExecutionEngine/Orc/IndirectionUtils.h>
-#include <llvm/ExecutionEngine/Orc/JITSymbol.h>
 #include <llvm/ExecutionEngine/Orc/LambdaResolver.h>
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/IR/Mangler.h>
@@ -37,17 +37,17 @@ JITCompiler::ModuleHandle JITCompiler::AddModule(std::unique_ptr<Module> module)
         {
             if (auto sym = mCODLayer.findSymbol(name, false))
             {
-                return sym.toRuntimeDyldSymbol();
+                return sym;
             }
-            return RuntimeDyld::SymbolInfo(nullptr);
+            return llvm::JITSymbol(nullptr);
         },
         [](const std::string &name) 
         {
             if (auto symAddr = RTDyldMemoryManager::getSymbolAddressInProcess(name))
             {
-                return RuntimeDyld::SymbolInfo(symAddr, JITSymbolFlags::Exported);
+                return llvm::JITSymbol(symAddr, JITSymbolFlags::Exported);
             }
-            return RuntimeDyld::SymbolInfo(nullptr);
+            return llvm::JITSymbol(nullptr);
         });
 
     std::vector<std::unique_ptr<Module>> modules;
@@ -56,7 +56,7 @@ JITCompiler::ModuleHandle JITCompiler::AddModule(std::unique_ptr<Module> module)
     return mCODLayer.addModuleSet(std::move(modules), make_unique<SectionMemoryManager>(), std::move(resolver));
 }
 
-JITSymbol JITCompiler::FindSymbol(const std::string& name)
+llvm::JITSymbol JITCompiler::FindSymbol(const std::string& name)
 {
     std::string mangledName;
     raw_string_ostream mangledNameStream(mangledName);

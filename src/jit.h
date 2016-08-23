@@ -11,12 +11,12 @@
 
 namespace llvm
 {
+    class JITSymbol;
     class TargetMachine;
 
     namespace orc
     {
         class JITCompileCallbackManager;
-        class JITSymbol;
     }
 }
 
@@ -49,7 +49,7 @@ namespace DistLang
 
     public:
         ModuleHandle AddModule(std::unique_ptr<llvm::Module> module);
-        llvm::orc::JITSymbol FindSymbol(const std::string& name);
+        llvm::JITSymbol FindSymbol(const std::string& name);
 
     };
 }
