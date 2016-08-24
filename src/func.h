@@ -2,39 +2,66 @@
 #define FUNC_H
 
 #include "expr.h"
-#include "jit.h"
+#include "index.h"
+
+namespace llvm
+{
+    class Module;
+}
 
 namespace DistLang
 {
     class Func
     {
     public:
-        ~Func() = default;
+        Func(const std::string& mName = "");
+        ~Func();
 
-    public:
+    public: // Access
         template <typename... Indexes>
         Expr& operator()(const Indexes&... indexes)
         {
+            mIndexes = { indexes... };
             return mExpr;
         }
 
-        template <typename T>
-        void Execute(Matrix<T>& tensor) 
-        {
-            if (mModule == nullptr)
-            {
-                mModule.reset(mExpr.GetIR().release());
-            }
+    public: // Execution
+        void Execute(Matrix& mat);
 
-            assert(mModule != nullptr);
-
-            mModule->dump();
-            //JITCompiler::GetInstance().FindSymbol()
-        }
+    public: // Scheduling
+        Func& Distribute(const Index& idx);
+        Func& Interchange();
 
     private:
+        void Compile();
+
+    private:
+        class ScheduleAction
+        {
+        public:
+            enum class Action
+            {
+                DISTRIBUTE,
+                INTERCHANGE
+            };
+
+        public:
+            explicit ScheduleAction(Action a) : mAction{ a } { }
+            ScheduleAction(Action a, const Index& idx) : ScheduleAction(a) { mIndexes.push_back(idx); }
+
+        private:
+            std::vector<Index> mIndexes;
+            Action mAction;
+        };
+
+    private:
+        std::string mName;
         Expr mExpr;
         std::unique_ptr<llvm::Module> mModule;
+        std::vector<Index> mIndexes;
+        std::vector<ScheduleAction> mSchedule;
+
+        static size_t mID;
     };
 }
 
