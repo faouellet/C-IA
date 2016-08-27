@@ -9,29 +9,27 @@
 
 namespace DistLang
 {
-    class Index;
-
     namespace impl
     {
+        enum class Operation { ADD, DIV, MUL, SUB };
+        
         class ExprIRBuilder
         {
         public:
             ExprIRBuilder();
 
         public:
-            void AddIndex(const Index& i);
-            
-            template <typename T>
-            void AddMatrix(const Matrix<T>& mat)
-            {
-                if (!IsVarDefined(mat.GetName()))
-                {
-                    mBuilder.SetInsertPoint(mDefBlock->getTerminator());
-                    // TODO
-                }
-            }
+            void CreateFunction(const std::string& name);
+            void CreateLoop(const Index& idx);
 
-            llvm::Module* GetIR() { return mMod.release(); }
+            llvm::Value* CreateIndex(const std::string& name);
+            llvm::Value* CreateMatrix(const std::string& name);
+            llvm::Value* CreateMatrixAccess(llvm::Value* matNode, llvm::Value* hIdxNode, llvm::Value* wIdxNode);
+            llvm::Value* CreateOp(llvm::Value* lhsVal, llvm::Value* rhsVal, Operation op);
+            llvm::Value* CreateReturn();
+
+        public:
+            llvm::Module* ReleaseModule() { return mMod.release(); }
 
         private:
             bool IsVarDefined(const std::string& name) { return mNamedVariables.find(name) != mNamedVariables.end(); }
@@ -42,6 +40,7 @@ namespace DistLang
             llvm::IRBuilder<> mBuilder;
             llvm::BasicBlock* mDefBlock;
             llvm::BasicBlock* mExprBlock;
+            llvm::StructType* mMatType;
             std::unique_ptr<llvm::Module> mMod;
         };
     }
