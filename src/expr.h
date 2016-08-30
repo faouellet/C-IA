@@ -1,20 +1,24 @@
 #ifndef EXPR_H
 #define EXPR_H
 
-#include "exprirbuilder.h"
-#include "index.h"
-#include "utils.h"
-
 #include <memory>
 #include <vector>
 
+namespace llvm
+{
+    class Value;
+}
+
 namespace DistLang
 {
-    template <typename T> class Matrix;
+    class Index;
+    class Matrix;
     
     namespace impl
     {
-        enum class Operation { ADD, DIV, MUL, SUB };
+        enum class Operation;
+        
+        class ExprIRBuilder;
 
         class ExprNode 
         {
@@ -22,7 +26,7 @@ namespace DistLang
             virtual ~ExprNode() = default;
 
         public:
-            virtual void CodeGen(ExprIRBuilder& builder) const = 0;
+            virtual llvm::Value* CodeGen(ExprIRBuilder& builder) const = 0;
         };
 
         class BinOpExprNode : public ExprNode 
@@ -32,7 +36,7 @@ namespace DistLang
                 mLHSNode{ lhsNode }, mRHSNode{ rhsNode }, mOp{ op } { }
 
         public: // Expr interface
-            virtual void CodeGen(ExprIRBuilder& builder) const override;
+            virtual llvm::Value* CodeGen(ExprIRBuilder& builder) const override;
 
         private:
             std::shared_ptr<ExprNode> mLHSNode;
@@ -40,43 +44,43 @@ namespace DistLang
             Operation mOp;
         };
 
-        template <typename T>
-        class ConstantExprNode : public ExprNode 
+        class IndexExprNode : public ExprNode 
         {
         public:
-            ConstantExprNode(const Matrix<T>& tensor) : mConstant{ tensor } { }
+            IndexExprNode(const std::string& name) : mName{ name } { }
 
         public: // Expr interface
-            virtual void CodeGen(ExprIRBuilder& builder) const override
-            {
-                builder.CreateAlloca(llvm::Type::getInt32Ty(builder.getContext()));
-            }
+            virtual llvm::Value* CodeGen(ExprIRBuilder& builder) const override;
 
         private:
-            Matrix<T>& mConstant;
+            std::string mName;
         };
 
-        template <typename T>
+        class MatrixExprNode : public ExprNode
+        {
+        public:
+            MatrixExprNode(const std::string& name) : mName{ name } { }
+
+        public: // Expr interface
+            virtual llvm::Value* CodeGen(ExprIRBuilder& builder) const override;
+
+        private:
+            std::string mName;
+        };
+
         class IndexedExprNode : public ExprNode
         {
         public:
-            template <typename T, typename... Indexes>
-            IndexedExprNode(const Matrix<T>& tensor, const Indexes&... indexes) : mVar{ tensor }, mIndexes{ indexes... } { }
+            IndexedExprNode(std::unique_ptr<ExprNode>&& matNode, std::unique_ptr<ExprNode>&& hIdxNode, std::unique_ptr<ExprNode>&& wIdxNode)
+                : mMatNode{ std::move(matNode) }, mHIdxNode{ std::move(hIdxNode) }, mWIdxNode{ std::move(wIdxNode) } { }
 
         public: // Expr interface
-            virtual void CodeGen(ExprIRBuilder& builder) const override
-            {
-                std::vector<llvm::Value*> indexValues;
-                for (int iDim = 0; iDim < mIndexes.size(); ++iDim)
-                {
-                    indexValues.emplace_back(builder.CreateAlloca(llvm::Type::getInt32Ty(builder.getContext())));
-                    builder.CreateStore(indexValues.back(), llvm::ConstantInt::get(builder.getContext(), llvm::APInt(32, 0)));
-                }
-            }
+            virtual llvm::Value* CodeGen(ExprIRBuilder& builder) const override;
 
         private:
-            const Matrix<T>& mVar;
-            std::vector<Index> mIndexes;
+            std::unique_ptr<ExprNode> mMatNode;
+            std::unique_ptr<ExprNode> mHIdxNode;
+            std::unique_ptr<ExprNode> mWIdxNode;
         };
     }
     
@@ -84,34 +88,15 @@ namespace DistLang
     {
     public: // Ctors
         Expr() = default;
-
-        template <typename T, typename... Indexes>
-        Expr(const Matrix<T>& matrix, const Indexes&... indexes)
-        {
-            static_assert(impl::is_all_same<Index, Indexes...>::value, "Index objects are required for indexing");
-            static_assert(std::is_integral<T>::value, "Only integral matrices are allowed");
-
-            mExprNode.reset(new impl::IndexedExprNode<T>{ matrix, indexes... });
-        }
-
-        template <typename T>
-        Expr(const Matrix<T>& matrix)
-        {
-            static_assert(std::is_integral<T>::value, "Only integral matrices are allowed");
-
-            mExprNode.reset(new impl::ConstantExprNode<T>{ matrix });
-        }
-
-        Expr(const Expr& lhsExpr, const Expr& rhsExpr, impl::Operation op)
-        {
-            mExprNode.reset(new impl::BinOpExprNode{ lhsExpr.mExprNode.get(), rhsExpr.mExprNode.get(), op });
-        }
+        Expr(const Matrix& matrix, const Index& hIdx, const Index& wIdx);
+        Expr(const Matrix& matrix);
+        Expr(const Expr& lhsExpr, const Expr& rhsExpr, impl::Operation op);
         
     public:
-        std::unique_ptr<llvm::Module> GetIR() const;
+        void CodeGen(impl::ExprIRBuilder& builder) const;
 
     private:
-        std::shared_ptr<impl::ExprNode> mExprNode;
+        std::unique_ptr<impl::ExprNode> mExprNode;
     };
 }
 

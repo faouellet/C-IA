@@ -1,5 +1,8 @@
 #include "expr.h"
 
+#include "exprirbuilder.h"
+#include "index.h"
+
 #include <llvm/IR/Module.h>
 
 using namespace DistLang;
@@ -8,54 +11,64 @@ using namespace llvm;
 
 ////////// BinOpExprNode //////////
 
-void BinOpExprNode::CodeGen(IRBuilder<>& builder) const
+Value* BinOpExprNode::CodeGen(ExprIRBuilder& builder) const
 {
-    mLHSNode->CodeGen(builder);
-    Value* lhsVal = &*builder.GetInsertPoint();
-    mRHSNode->CodeGen(builder);
-    Value* rhsVal = &*builder.GetInsertPoint();
+    Value* lhsVal = mLHSNode->CodeGen(builder);
+    Value* rhsVal = mRHSNode->CodeGen(builder);
+    
+    return builder.CreateOp(lhsVal, rhsVal, mOp);
+}
 
-    BasicBlock* currentBlock = builder.GetInsertBlock();
-    BasicBlock* binOpBlock = BasicBlock::Create(builder.getContext(), "BinOp", currentBlock->getParent());
-    builder.CreateBr(binOpBlock);
-    builder.SetInsertPoint(binOpBlock);
+////////// IndexExprNode //////////
 
-    Value* binOpVal = nullptr;
-    switch (mOp)
-    {
-    case Operation::ADD:
-        binOpVal = builder.CreateAdd(lhsVal, rhsVal);
-        break;
-    case Operation::DIV:
-        binOpVal = builder.CreateUDiv(lhsVal, rhsVal);
-        break;
-    case Operation::MUL:
-        binOpVal = builder.CreateMul(lhsVal, rhsVal);
-        break;
-    case Operation::SUB:
-        binOpVal = builder.CreateSub(lhsVal, rhsVal);
-        break;
-    default:
-        assert(false && "Unsupported binary operation");
-    }
+Value* IndexExprNode::CodeGen(ExprIRBuilder& builder) const 
+{
+    return builder.CreateIndex(mName); 
+}
+
+////////// MatrixExprNode //////////
+
+Value* MatrixExprNode::CodeGen(ExprIRBuilder& builder) const 
+{ 
+    return builder.CreateIndex(mName); 
+}
+
+////////// IndexedExprNode //////////
+
+Value* IndexedExprNode::CodeGen(ExprIRBuilder& builder) const
+{
+    Value* matValue = mMatNode->CodeGen(builder);
+    Value* hIdxValue = mHIdxNode->CodeGen(builder);
+    Value* wIdxValue = mWIdxNode->CodeGen(builder);
+
+    return builder.CreateMatrixAccess(matValue, hIdxValue, wIdxValue);
 }
 
 ////////// Expr //////////
 
-std::unique_ptr<Module> Expr::GetIR() const
+Expr::Expr(const Matrix& matrix, const Index& hIdx, const Index& wIdx)
 {
-    ExprIRBuilder builder;
+    std::unique_ptr<ExprNode> matNode{ new impl::IndexExprNode{ matrix.GetName() } };
+    std::unique_ptr<ExprNode> hIdxNode{ new impl::IndexExprNode{ hIdx.GetName() } };
+    std::unique_ptr<ExprNode> wIdxNode{ new impl::IndexExprNode{ wIdx.GetName() } };
 
-    auto mod = std::make_unique<Module>(builder.GetIR());
+    mExprNode.reset(new impl::IndexedExprNode{ std::move(matNode), std::move(hIdxNode), std::move(wIdxNode) });
+}
 
-    mod->dump();
-    
+Expr::Expr(const Matrix& matrix)
+{
+    mExprNode.reset(new impl::MatrixExprNode{ matrix.GetName() });
+}
+
+Expr::Expr(const Expr& lhsExpr, const Expr& rhsExpr, Operation op)
+{
+    mExprNode.reset(new impl::BinOpExprNode{ lhsExpr.mExprNode.get(), rhsExpr.mExprNode.get(), op });
+}
+
+void Expr::CodeGen(ExprIRBuilder& builder) const
+{
     if (mExprNode != nullptr)
     {
-        // TODO: Create loop
         mExprNode->CodeGen(builder);
-        return mod;
     }
-
-    return nullptr;
 }
