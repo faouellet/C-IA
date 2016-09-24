@@ -23,15 +23,14 @@ BOOST_AUTO_TEST_CASE( MatrixAdditionTest )
     Func matAdd;
 
     // The function definition
-    //matAdd(i, j) = matA(i, j) + matB(i, j);
-    matAdd(i, j) = matA(i, j);
+    matAdd(i, j) = matA(i, j) + matB(i, j);
+    //matAdd(i, j) = matA(i, j);
 
     // matAdd.distribute()
     // matAdd.parallelize()
     // matAdd.vectorize()
     
-    Matrix matC;
-    matAdd.Execute(matC);
+    Matrix matC = matAdd.Execute<Matrix::Data, Matrix::Data>({ {1,2}, {3,4} }, { {5,6}, {7,8} });
 }
 
 /*BOOST_AUTO_TEST_CASE( MatrixMultiplicationTest )
