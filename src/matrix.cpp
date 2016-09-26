@@ -5,13 +5,11 @@
 
 using namespace DistLang;
 
-size_t Matrix::mID = 0;
-
 Matrix::Matrix(const std::string& name) : mName{ name }
 {
     if (name.empty())
     {
-        mName = "Matrix" + std::to_string(mID++);
+        mName = "Matrix";
     }
 }
 
