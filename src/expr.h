@@ -89,7 +89,7 @@ namespace DistLang
     public: // Ctors
         Expr() = default;
         Expr(const Matrix& matrix, const Index& hIdx, const Index& wIdx);
-        Expr(const Matrix& matrix);
+        explicit Expr(const Matrix& matrix);
         Expr(const Expr& lhsExpr, const Expr& rhsExpr, impl::Operation op);
         
     public:
@@ -98,6 +98,11 @@ namespace DistLang
     private:
         std::unique_ptr<impl::ExprNode> mExprNode;
     };
+
+    Expr operator+(const Expr& lhs, const Expr& rhs);
+    Expr operator/(const Expr& lhs, const Expr& rhs);
+    Expr operator*(const Expr& lhs, const Expr& rhs);
+    Expr operator-(const Expr& lhs, const Expr& rhs);
 }
 
 #endif // EXPR_H

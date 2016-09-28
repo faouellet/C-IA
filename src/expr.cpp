@@ -72,3 +72,8 @@ void Expr::CodeGen(ExprIRBuilder& builder) const
         mExprNode->CodeGen(builder);
     }
 }
+
+Expr DistLang::operator+(const Expr& lhs, const Expr& rhs) { return{ lhs, rhs, impl::Operation::ADD }; }
+Expr DistLang::operator/(const Expr& lhs, const Expr& rhs) { return{ lhs, rhs, impl::Operation::DIV }; }
+Expr DistLang::operator*(const Expr& lhs, const Expr& rhs) { return{ lhs, rhs, impl::Operation::MUL }; }
+Expr DistLang::operator-(const Expr& lhs, const Expr& rhs) { return{ lhs, rhs, impl::Operation::SUB }; }
