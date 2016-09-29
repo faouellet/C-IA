@@ -26,7 +26,6 @@ namespace DistLang
             llvm::Value* CreateMatrix(const std::string& name);
             llvm::Value* CreateMatrixAccess(llvm::Value* matNode, llvm::Value* hIdxNode, llvm::Value* wIdxNode);
             llvm::Value* CreateOp(llvm::Value* lhsVal, llvm::Value* rhsVal, Operation op);
-            llvm::Value* CreateReturn();
 
         public:
             llvm::Module* ReleaseModule() { return mMod.release(); }
@@ -40,6 +39,7 @@ namespace DistLang
             llvm::IRBuilder<> mBuilder;
             llvm::BasicBlock* mDefBlock;
             llvm::BasicBlock* mExprBlock;
+            llvm::Function* mFunc;
             llvm::StructType* mMatType;
             std::unique_ptr<llvm::Module> mMod;
         };
