@@ -15,7 +15,6 @@ namespace DistLang
 
     private:
         std::string mName;
-        static size_t mID;
     };
 }
 

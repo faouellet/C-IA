@@ -2,7 +2,9 @@
 #define FUNC_H
 
 #include "expr.h"
+#include "exprirbuilder.h"
 #include "index.h"
+#include "jit.h"
 
 namespace llvm
 {
@@ -18,50 +20,37 @@ namespace DistLang
         ~Func();
 
     public: // Access
-        template <typename... Indexes>
-        Expr& operator()(const Indexes&... indexes)
+        template <typename... IndexesT>
+        Expr& operator()(const IndexesT&... indexes)
         {
             mIndexes = { indexes... };
             return mExpr;
         }
 
     public: // Execution
-        void Execute(Matrix& mat);
+        template <typename... DataT>
+        Matrix Execute(const DataT&... matrices)
+        {
+            if (mModule == nullptr)
+            {
+                Compile();
+            }
 
-    public: // Scheduling
-        Func& Distribute(const Index& idx);
-        Func& Interchange();
+            assert(mModule != nullptr);
+
+            JITCompiler::GetInstance().FindSymbol(mName);
+
+            return{};
+        }
 
     private:
         void Compile();
-
-    private:
-        class ScheduleAction
-        {
-        public:
-            enum class Action
-            {
-                DISTRIBUTE,
-                INTERCHANGE
-            };
-
-        public:
-            explicit ScheduleAction(Action a) : mAction{ a } { }
-            ScheduleAction(Action a, const Index& idx) : ScheduleAction(a) { mIndexes.push_back(idx); }
-
-        private:
-            std::vector<Index> mIndexes;
-            Action mAction;
-        };
 
     private:
         std::string mName;
         Expr mExpr;
         std::unique_ptr<llvm::Module> mModule;
         std::vector<Index> mIndexes;
-        std::vector<ScheduleAction> mSchedule;
-
-        static size_t mID;
     };
 }
 

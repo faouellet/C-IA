@@ -8,9 +8,12 @@ namespace DistLang
 {
     class Expr;
     class Index;
-
+    
     class Matrix
     {
+    public:
+        using Data = std::vector<std::vector<double>>;
+
     public:
         Matrix(const std::string& name = "");
 
@@ -21,11 +24,11 @@ namespace DistLang
         size_t GetHeight() const { return mData.size(); }
         size_t GetWidth() const { return mData.front().size(); }
         const std::string& GetName() const { return mName; }
+        const Data& GetData() const { return mData; }
 
     private:
-        static size_t mID;
         std::string mName;
-        std::vector<std::vector<double>> mData;
+        Data mData;
     };
 }
 
